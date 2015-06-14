@@ -1,0 +1,59 @@
+<workflow-app name="PROD-CheckForStalledJobs" xmlns="uri:oozie:workflow:0.4">
+    <start to="ResetFilePath"/>
+    <action name="ResetFilePath">
+        <fs>
+            <delete path='${nameNode}/irdw/prod/raw/wf_stall_checker/text'/>
+            <mkdir path='${nameNode}/irdw/prod/raw/wf_stall_checker/text'/>
+        </fs>
+        <ok to="GetRunningJobs"/>
+        <error to="kill"/>
+    </action>
+    <action name="GetRunningJobs">
+        <sqoop xmlns="uri:oozie:sqoop-action:0.2">
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <arg>import</arg>
+            <arg>--connect</arg>
+            <arg>jdbc:mysql://cloudera_mgr.db.phx.impactradius.net:3423/oozie?dontTrackOpenResources=true&amp;useCursorFetch=true</arg>
+            <arg>--username</arg>
+            <arg>cloudero</arg>
+            <arg>--password-file</arg>
+            <arg>/irdw/prod/lib/.passwordCloudera</arg>
+            <arg>--target-dir</arg>
+            <arg>/irdw/prod/raw/wf_stall_checker/text</arg>
+            <arg>--append</arg>
+            <arg>--as-textfile</arg>
+            <arg>--escaped-by</arg>
+            <arg>\\</arg>
+            <arg>--hive-delims-replacement</arg>
+            <arg>\\\\n</arg>
+            <arg>--null-non-string</arg>
+            <arg>\\N</arg>
+            <arg>--null-string</arg>
+            <arg>\\N</arg>
+            <arg>--fetch-size</arg>
+            <arg>-2147483648</arg>
+            <arg>-m</arg>
+            <arg>1</arg>
+            <arg>--query</arg>
+            <arg>&quot;select id, start_time, hour(timediff(date_add(now(), interval -7 hour), start_time)) hours_elapsed, minute(timediff(date_add(now(), interval -7 hour), start_time)) minutes_elapsed, app_name from wf_jobs where $CONDITIONS and end_time is null and app_name not like &#39;%Launcher%&#39;&quot;</arg>
+            <file>/irdw/prod/lib/mysql-connector-java-5.1.34-bin.jar#mysql-connector-java-5.1.34-bin.jar</file>
+        </sqoop>
+        <ok to="KillStalledJobs"/>
+        <error to="kill"/>
+    </action>
+    <action name="KillStalledJobs">
+        <shell xmlns="uri:oozie:shell-action:0.1">
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <exec>kill_stalled_jobs.sh</exec>
+            <file>/irdw/prod/raw/wf_stall_checker/etl/kill_stalled_jobs.sh#kill_stalled_jobs.sh</file>
+        </shell>
+        <ok to="end"/>
+        <error to="kill"/>
+    </action>
+    <kill name="kill">
+        <message>Action failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+    <end name="end"/>
+</workflow-app>
