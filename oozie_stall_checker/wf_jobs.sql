@@ -1,5 +1,5 @@
-drop table if exists irdw_prod.wf_jobs;
-create external table irdw_prod.wf_jobs
+drop table if exists [database].wf_jobs;
+create external table [database].wf_jobs
 (
   id string,
   start_date timestamp,
@@ -8,5 +8,5 @@ create external table irdw_prod.wf_jobs
   job_name string
 )
 row format delimited fields terminated by ',' escaped by '\\'
-location '/irdw/prod/raw/wf_stall_checker/text'
+location '[hdfs path]/wf_stall_checker/text'
 tblproperties("serialization.null.format"="\\\\N");

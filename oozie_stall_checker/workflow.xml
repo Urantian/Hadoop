@@ -1,9 +1,9 @@
-<workflow-app name="PROD-CheckForStalledJobs" xmlns="uri:oozie:workflow:0.4">
+<workflow-app name="CheckForStalledJobs" xmlns="uri:oozie:workflow:0.4">
     <start to="ResetFilePath"/>
     <action name="ResetFilePath">
         <fs>
-            <delete path='${nameNode}/irdw/prod/raw/wf_stall_checker/text'/>
-            <mkdir path='${nameNode}/irdw/prod/raw/wf_stall_checker/text'/>
+            <delete path='/[hdfs path]/wf_stall_checker/text'/>
+            <mkdir path='/[hdfs path]/wf_stall_checker/text'/>
         </fs>
         <ok to="GetRunningJobs"/>
         <error to="kill"/>
@@ -14,13 +14,13 @@
             <name-node>${nameNode}</name-node>
             <arg>import</arg>
             <arg>--connect</arg>
-            <arg>jdbc:mysql://cloudera_mgr.db.phx.impactradius.net:3423/oozie?dontTrackOpenResources=true&amp;useCursorFetch=true</arg>
+            <arg>jdbc:mysql://cloudera_mgr.db.[server]:3423/oozie?dontTrackOpenResources=true&amp;useCursorFetch=true</arg>
             <arg>--username</arg>
-            <arg>cloudero</arg>
+            <arg>[username]</arg>
             <arg>--password-file</arg>
-            <arg>/irdw/prod/lib/.passwordCloudera</arg>
+            <arg>[path to password]</arg>
             <arg>--target-dir</arg>
-            <arg>/irdw/prod/raw/wf_stall_checker/text</arg>
+            <arg>[hdfs path]/wf_stall_checker/text</arg>
             <arg>--append</arg>
             <arg>--as-textfile</arg>
             <arg>--escaped-by</arg>
@@ -36,8 +36,8 @@
             <arg>-m</arg>
             <arg>1</arg>
             <arg>--query</arg>
-            <arg>&quot;select id, start_time, hour(timediff(date_add(now(), interval -7 hour), start_time)) hours_elapsed, minute(timediff(date_add(now(), interval -7 hour), start_time)) minutes_elapsed, app_name from wf_jobs where $CONDITIONS and end_time is null and app_name not like &#39;%Launcher%&#39;&quot;</arg>
-            <file>/irdw/prod/lib/mysql-connector-java-5.1.34-bin.jar#mysql-connector-java-5.1.34-bin.jar</file>
+            <arg>&quot;select id, start_time, hour(timediff(date_add(now(), interval -7 hour), start_time)) hours_elapsed, minute(timediff(date_add(now(), interval -7 hour), start_time)) minutes_elapsed, app_name from wf_jobs where $CONDITIONS and end_time is null</arg>
+            <file>[hdfs path]/mysql-connector-java-5.1.34-bin.jar#mysql-connector-java-5.1.34-bin.jar</file>
         </sqoop>
         <ok to="KillStalledJobs"/>
         <error to="kill"/>
@@ -47,7 +47,7 @@
             <job-tracker>${jobTracker}</job-tracker>
             <name-node>${nameNode}</name-node>
             <exec>kill_stalled_jobs.sh</exec>
-            <file>/irdw/prod/raw/wf_stall_checker/etl/kill_stalled_jobs.sh#kill_stalled_jobs.sh</file>
+            <file>[hdfs path]/wf_stall_checker/etl/kill_stalled_jobs.sh#kill_stalled_jobs.sh</file>
         </shell>
         <ok to="end"/>
         <error to="kill"/>
